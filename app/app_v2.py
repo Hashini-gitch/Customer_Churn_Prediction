@@ -212,13 +212,11 @@ if st.button("🔍 Predict Churn"):
     }])
 
     history.to_csv(
-
-        HISTORY_PATH,
-        mode="a",
-        header=not os.path.exists(HISTORY_PATH),
-        index=False
-
-    )
+    HISTORY_PATH,
+    mode="a",
+    header=not HISTORY_PATH.exists(),
+    index=False
+)
 
     st.divider()
 
