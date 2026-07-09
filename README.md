@@ -155,13 +155,33 @@ Instead of using manually written business rules, the application shows which fe
 
 ## Screenshots
 
-You can add screenshots of:
+### Home Page
 
-- Home page
-- Prediction result
-- SHAP explanation
-- Analytics dashboard
+![Home](screenshots/home.png)
 
+---
+
+### Prediction Result
+
+![Prediction](screenshots/prediction.png)
+
+---
+
+### SHAP Explainability
+
+![SHAP](screenshots/shap.png)
+
+---
+
+### Prediction History
+
+![History](screenshots/history.png)
+
+---
+
+### Analytics Dashboard
+
+![Dashboard](screenshots/dashboard.png)
 ---
 
 ## Future Improvements
