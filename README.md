@@ -1,5 +1,14 @@
 # Customer Churn Prediction System
 
+🚀 Live Demo:
+https://customer-churn-prediction.streamlit.app
+
+🐳 Docker Supported
+
+🤖 Explainable AI (SHAP)
+
+📊 Streamlit Dashboard
+
 ## Overview
 
 This project is an AI-powered Customer Churn Prediction System developed using Machine Learning and Streamlit.
@@ -183,6 +192,7 @@ Instead of using manually written business rules, the application shows which fe
 
 ![Dashboard](screenshots/dashboard.png)
 ---
+
 
 ## Future Improvements
 
