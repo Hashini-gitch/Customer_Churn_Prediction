@@ -86,7 +86,7 @@ Customer_Churn_Prediction/
 Clone the repository
 
 ```bash
-git clone YOUR_GITHUB_REPOSITORY_LINK
+git clone https://github.com/Hashini-gitch/Customer_Churn_Prediction.git
 ```
 
 Move into the project
@@ -183,8 +183,7 @@ Data Science Undergraduate
 
 SLIIT
 
-GitHub:
-(Add your GitHub profile link)
+GitHub:https://github.com/Hashini-gitch
 
-LinkedIn:
-(Add your LinkedIn profile link)
+
+LinkedIn:https://www.linkedin.com/in/hashini-a-rathnayake-2a8ba235b
