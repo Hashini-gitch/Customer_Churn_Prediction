@@ -1,49 +1,17 @@
 import streamlit as st
 import pandas as pd
 import joblib
-from pathlib import Path
-import os
-from datetime import datetime
+import shap
 import matplotlib.pyplot as plt
+import os
 
-# -------------------------------------------------
-# Utility Functions
-# -------------------------------------------------
-
-def get_risk_level(prob):
-    if prob < 0.30:
-        return "Low Risk"
-    elif prob < 0.70:
-        return "Medium Risk"
-    else:
-        return "High Risk"
+from pathlib import Path
+from datetime import datetime
 
 
-def explain_customer(data):
-
-    reasons = []
-
-    if data["Contract"].iloc[0] == "Month-to-month":
-        reasons.append("📌 Month-to-month contracts have higher churn risk.")
-
-    if data["InternetService"].iloc[0] == "Fiber optic":
-        reasons.append("📌 Fiber optic customers historically churn more often.")
-
-    if data["PaymentMethod"].iloc[0] == "Electronic check":
-        reasons.append("📌 Electronic check users have higher churn rates.")
-
-    if data["MonthlyCharges"].iloc[0] > 80:
-        reasons.append("📌 High monthly charges increase churn risk.")
-
-    if data["tenure"].iloc[0] < 12:
-        reasons.append("📌 New customers are more likely to churn.")
-
-    return reasons
-
-
-# -------------------------------------------------
-# Page Configuration
-# -------------------------------------------------
+# ==========================================================
+# PAGE CONFIG
+# ==========================================================
 
 st.set_page_config(
     page_title="Customer Churn Prediction",
@@ -51,68 +19,95 @@ st.set_page_config(
     layout="centered"
 )
 
-# -------------------------------------------------
-# Load Model
-# -------------------------------------------------
+
+# ==========================================================
+# PATHS
+# ==========================================================
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_PATH = BASE_DIR / "models" / "customer_churn_deployment_model.pkl"
+
+EXPLAINER_PATH = BASE_DIR / "models" / "shap_explainer.pkl"
 
 HISTORY_DIR = BASE_DIR / "history"
 HISTORY_DIR.mkdir(exist_ok=True)
 
 HISTORY_PATH = HISTORY_DIR / "prediction_history.csv"
 
+
+# ==========================================================
+# LOAD MODEL
+# ==========================================================
+
 pipeline = joblib.load(MODEL_PATH)
 
-# -------------------------------------------------
-# Sidebar
-# -------------------------------------------------
+explainer = joblib.load(EXPLAINER_PATH)
 
-st.sidebar.title("📘 About")
 
-st.sidebar.info(
-"""
-### Customer Churn Prediction System
+# ==========================================================
+# FUNCTIONS
+# ==========================================================
 
-This AI application predicts whether a telecom customer is likely to leave the company.
+def get_risk_level(probability):
 
-### Model
+    if probability < 0.30:
+        return "Low Risk"
+
+    elif probability < 0.70:
+        return "Medium Risk"
+
+    else:
+        return "High Risk"
+
+
+# ==========================================================
+# SIDEBAR
+# ==========================================================
+
+st.sidebar.title("📘 About This Project")
+
+st.sidebar.markdown("""
+### Customer Churn Prediction
+
+Predict whether a telecom customer will leave the company.
+
+### Machine Learning Model
+
 - Logistic Regression
+- Scikit-Learn Pipeline
 
-### Features
-- Gender
-- Senior Citizen
-- Tenure
-- Internet Service
-- Contract
-- Payment Method
-- Monthly Charges
-- Total Charges
+### Explainability
 
-### Built With
+- SHAP Explainability
+
+### Technologies
+
 - Python
-- Scikit-learn
 - Streamlit
-"""
-)
+- Pandas
+- Matplotlib
+- SHAP
+- Scikit-learn
+""")
 
-# -------------------------------------------------
-# Title
-# -------------------------------------------------
+
+# ==========================================================
+# TITLE
+# ==========================================================
 
 st.title("📊 Customer Churn Prediction System")
 
 st.write(
-    "Predict whether a telecom customer is likely to churn."
+    "Predict whether a telecom customer is likely to churn using Machine Learning."
 )
 
 st.divider()
 
-# -------------------------------------------------
-# Input Form
-# -------------------------------------------------
+
+# ==========================================================
+# INPUTS
+# ==========================================================
 
 left, right = st.columns(2)
 
@@ -137,14 +132,23 @@ with left:
 
     internet = st.selectbox(
         "Internet Service",
-        ["DSL", "Fiber optic", "No"]
+        [
+            "DSL",
+            "Fiber optic",
+            "No"
+        ]
     )
+
 
 with right:
 
     contract = st.selectbox(
         "Contract",
-        ["Month-to-month", "One year", "Two year"]
+        [
+            "Month-to-month",
+            "One year",
+            "Two year"
+        ]
     )
 
     payment = st.selectbox(
@@ -173,28 +177,40 @@ with right:
 
 st.divider()
 
-# -------------------------------------------------
-# Input DataFrame
-# -------------------------------------------------
+
+# ==========================================================
+# CREATE INPUT DATAFRAME
+# ==========================================================
 
 input_df = pd.DataFrame([{
 
     "gender": gender,
+
     "SeniorCitizen": 1 if senior == "Yes" else 0,
+
     "tenure": tenure,
+
     "InternetService": internet,
+
     "Contract": contract,
+
     "PaymentMethod": payment,
+
     "MonthlyCharges": monthly,
+
     "TotalCharges": total
 
 }])
 
-# -------------------------------------------------
-# Prediction
-# -------------------------------------------------
+# ==========================================================
+# PREDICTION
+# ==========================================================
 
 if st.button("🔍 Predict Churn"):
+
+    # -----------------------------
+    # Model Prediction
+    # -----------------------------
 
     prediction = pipeline.predict(input_df)[0]
 
@@ -202,100 +218,221 @@ if st.button("🔍 Predict Churn"):
 
     risk_label = get_risk_level(probability)
 
+    # -----------------------------
+    # Save Prediction History
+    # -----------------------------
+
     history = pd.DataFrame([{
 
         "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+
         "Prediction": prediction,
-        "Probability": round(probability,4),
+
+        "Probability": round(probability, 4),
+
         "Risk": risk_label
 
     }])
 
     history.to_csv(
-    HISTORY_PATH,
-    mode="a",
-    header=not HISTORY_PATH.exists(),
-    index=False
-)
+
+        HISTORY_PATH,
+
+        mode="a",
+
+        header=not HISTORY_PATH.exists(),
+
+        index=False
+
+    )
 
     st.divider()
 
-    # -------------------------
+    # =====================================================
     # Prediction Result
-    # -------------------------
+    # =====================================================
 
     st.subheader("📋 Prediction Result")
 
     if prediction == "Yes":
+
         st.error("⚠️ Customer is likely to CHURN")
+
     else:
+
         st.success("✅ Customer is likely to STAY")
 
-    # -------------------------
+    # =====================================================
     # Risk Analysis
-    # -------------------------
+    # =====================================================
 
     st.subheader("📊 Risk Analysis")
 
-    st.markdown(f"## {risk_label}")
+    st.metric(
+
+        label="Churn Probability",
+
+        value=f"{probability*100:.2f}%"
+
+    )
 
     st.progress(float(probability))
 
-    st.metric(
-        "Churn Probability",
-        f"{probability*100:.2f}%"
-    )
+    st.markdown(f"### Risk Level: **{risk_label}**")
 
-    # -------------------------
+    # =====================================================
     # Business Recommendation
-    # -------------------------
+    # =====================================================
 
     st.subheader("💡 Business Recommendation")
 
     if risk_label == "High Risk":
 
         st.error(
-            "Offer retention discounts, loyalty rewards or customer support intervention."
+            """
+Offer a retention discount.
+
+Provide loyalty rewards.
+
+Arrange a proactive customer support call.
+"""
         )
 
     elif risk_label == "Medium Risk":
 
         st.warning(
-            "Monitor this customer and consider personalized offers."
+            """
+Monitor this customer carefully.
+
+Recommend personalized offers.
+"""
         )
 
     else:
 
         st.success(
-            "Customer appears stable. No immediate action is required."
+            """
+Customer appears stable.
+
+No immediate action is required.
+"""
         )
 
-    # -------------------------
-    # Explanation
-    # -------------------------
+    # =====================================================
+    # SHAP Explainability
+    # =====================================================
 
-    st.subheader("🔍 Why this prediction?")
+    st.divider()
 
-    reasons = explain_customer(input_df)
+    st.subheader("🧠 AI Explainability (SHAP)")
 
-    if len(reasons) == 0:
+    # Transform input
 
-        st.success("No major churn risk factors detected.")
+    transformed = pipeline.named_steps[
+        "preprocessor"
+    ].transform(input_df)
 
-    else:
+    # Calculate SHAP values
 
-        for reason in reasons:
-            st.write(reason)
+    shap_values = explainer(transformed)
 
-# -------------------------------------------------
-# Prediction History
-# -------------------------------------------------
+    # Waterfall Plot
+
+    fig = plt.figure(figsize=(10,5))
+
+    shap.plots.waterfall(
+
+        shap_values[0],
+
+        max_display=8,
+
+        show=False
+
+    )
+
+    st.pyplot(fig)
+
+    plt.close(fig)
+
+    # =====================================================
+    # Feature Contribution Table
+    # =====================================================
+
+    st.subheader("📈 Top Feature Contributions")
+
+    feature_names = pipeline.named_steps[
+        "preprocessor"
+    ].get_feature_names_out()
+
+    importance_df = pd.DataFrame({
+
+        "Feature": feature_names,
+
+        "Contribution": shap_values.values[0]
+
+    })
+
+    importance_df["Absolute"] = (
+        importance_df["Contribution"].abs()
+    )
+
+    importance_df = importance_df.sort_values(
+
+        "Absolute",
+
+        ascending=False
+
+    )
+
+    st.dataframe(
+
+        importance_df[
+            ["Feature", "Contribution"]
+        ].head(10),
+
+        width="stretch"
+
+    )
+
+    # =====================================================
+    # Download Prediction
+    # =====================================================
+
+    st.subheader("📥 Download Prediction")
+
+    result_df = pd.DataFrame([{
+
+        "Prediction": prediction,
+
+        "Probability": round(probability,4),
+
+        "Risk": risk_label
+
+    }])
+
+    csv = result_df.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+
+        label="⬇ Download Result as CSV",
+
+        data=csv,
+
+        file_name="prediction_result.csv",
+
+        mime="text/csv"
+
+    )
+
+    # ==========================================================
+# PREDICTION HISTORY
+# ==========================================================
 
 st.divider()
 
 st.subheader("📜 Prediction History")
 
-if os.path.exists(HISTORY_PATH):
+if HISTORY_PATH.exists():
 
     history_df = pd.read_csv(HISTORY_PATH)
 
@@ -307,22 +444,20 @@ if os.path.exists(HISTORY_PATH):
         )
 
     else:
-
-        st.info("No predictions made yet.")
+        st.info("No predictions have been made yet.")
 
 else:
-
     st.info("Prediction history file not found.")
 
-# -------------------------------------------------
-# Analytics Dashboard
-# -------------------------------------------------
+# ==========================================================
+# ANALYTICS DASHBOARD
+# ==========================================================
 
 st.divider()
 
-st.subheader("📊 Analytics Dashboard")
+st.header("📊 Analytics Dashboard")
 
-if os.path.exists(HISTORY_PATH):
+if HISTORY_PATH.exists():
 
     history_df = pd.read_csv(HISTORY_PATH)
 
@@ -330,84 +465,167 @@ if os.path.exists(HISTORY_PATH):
 
         total_predictions = len(history_df)
 
+        churn_predictions = (
+            history_df["Prediction"] == "Yes"
+        ).sum()
+
+        stay_predictions = (
+            history_df["Prediction"] == "No"
+        ).sum()
+
         high_risk = (
             history_df["Risk"] == "High Risk"
         ).sum()
 
-        avg_probability = history_df["Probability"].mean()
+        avg_probability = history_df[
+            "Probability"
+        ].mean()
 
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
 
         col1.metric(
-            "Total Predictions",
+            "Predictions",
             total_predictions
         )
 
         col2.metric(
-            "High Risk Customers",
+            "High Risk",
             high_risk
         )
 
         col3.metric(
-            "Average Probability",
+            "Likely Churn",
+            churn_predictions
+        )
+
+        col4.metric(
+            "Average Risk",
             f"{avg_probability*100:.1f}%"
         )
 
-        # -------------------------
-        # Pie Chart
-        # -------------------------
+        st.divider()
 
-        prediction_counts = history_df["Prediction"].value_counts()
+        # ==========================================
+        # Prediction Distribution
+        # ==========================================
 
-        fig, ax = plt.subplots(figsize=(5,5))
+        left_chart, right_chart = st.columns(2)
 
-        ax.pie(
+        with left_chart:
 
-            prediction_counts,
-            labels=prediction_counts.index,
-            autopct="%1.1f%%"
+            st.subheader("Prediction Distribution")
+
+            prediction_counts = history_df[
+                "Prediction"
+            ].value_counts()
+
+            fig1, ax1 = plt.subplots(figsize=(5,5))
+
+            ax1.pie(
+                prediction_counts.values,
+                labels=prediction_counts.index,
+                autopct="%1.1f%%",
+                startangle=90
+            )
+
+            ax1.axis("equal")
+
+            st.pyplot(fig1)
+
+            plt.close(fig1)
+
+        # ==========================================
+        # Risk Distribution
+        # ==========================================
+
+        with right_chart:
+
+            st.subheader("Risk Distribution")
+
+            risk_counts = history_df[
+                "Risk"
+            ].value_counts()
+
+            fig2, ax2 = plt.subplots(figsize=(6,4))
+
+            ax2.bar(
+                risk_counts.index,
+                risk_counts.values
+            )
+
+            ax2.set_ylabel("Customers")
+
+            ax2.set_title("Risk Levels")
+
+            st.pyplot(fig2)
+
+            plt.close(fig2)
+
+        st.divider()
+
+        # ==========================================
+        # Recent Predictions
+        # ==========================================
+
+        st.subheader("📋 Recent Predictions")
+
+        st.dataframe(
+
+            history_df.tail(20),
+
+            use_container_width=True
 
         )
-
-        ax.set_title("Prediction Distribution")
-
-        st.pyplot(fig)
-
-        # -------------------------
-        # Bar Chart
-        # -------------------------
-
-        risk_counts = history_df["Risk"].value_counts()
-
-        fig2, ax2 = plt.subplots(figsize=(6,4))
-
-        ax2.bar(
-
-            risk_counts.index,
-            risk_counts.values
-
-        )
-
-        ax2.set_title("Risk Distribution")
-
-        ax2.set_ylabel("Customers")
-
-        st.pyplot(fig2)
-
-    else:
-
-        st.info("No analytics available yet.")
 
 else:
 
-    st.info("Prediction history file not found.")
+    st.info(
+        "Run a prediction first to generate analytics."
+    )
 
-# -------------------------------------------------
-# Footer
-# -------------------------------------------------
+# ==========================================================
+# PROJECT INFORMATION
+# ==========================================================
+
+st.divider()
+
+with st.expander("ℹ️ Project Information"):
+
+    st.markdown("""
+### Customer Churn Prediction System
+
+This project predicts whether a telecom customer is likely to leave the company.
+
+### Machine Learning Pipeline
+
+- Data Cleaning
+- Feature Engineering
+- ColumnTransformer
+- One-Hot Encoding
+- StandardScaler
+- Logistic Regression
+
+### Explainability
+
+- SHAP Explainable AI (XAI)
+
+### Deployment
+
+- Streamlit
+
+### Developer
+
+**Hashini Avishka**
+
+Data Science Undergraduate
+""")
+
+# ==========================================================
+# FOOTER
+# ==========================================================
 
 st.divider()
 
 st.caption(
-    "Developed by Hashini Avishka | Data Science Portfolio Project"
+    "© 2026 Hashini Avishka | Customer Churn Prediction System | Built with Streamlit & Scikit-learn"
 )
