@@ -85,7 +85,7 @@ Customer_Churn_Prediction/
 
 ### Analytics Dashboard
 
-![Dashboard](images/dashboard.png)
+![Dashboard](screenshots/dashboard.png)
 
 ## ⚙️ Installation
 
