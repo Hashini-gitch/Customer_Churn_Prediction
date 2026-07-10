@@ -63,23 +63,23 @@ Customer_Churn_Prediction/
 
 └── README.md
 
-## 📷 Screenshots
+## 📷 Screenshots 
 
 ### Home Page
 
-![Home](images/home.png)
+![Home](screenshots/home.png)
 
 ---
 
 ### Prediction Result
 
-![Prediction](images/prediction.png)
+![Prediction](screenshots/prediction.png)
 
 ---
 
 ### SHAP Explainability
 
-![SHAP](images/shap.png)
+![SHAP](screenshots/shap.png)
 
 ---
 
